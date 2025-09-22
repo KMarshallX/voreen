@@ -1087,12 +1087,14 @@ GeometryInsideTest::GeometryInsideTest()
     , inport_(Port::INPORT, "geometryinsidetest.inport", "")
     , outport_(Port::OUTPORT, "geometryinsidetest.outport", "ID Volume Output", false)
     , dimensions_("dimensions", "Dimensions", 256, 32, 1024)
+    , padding_("padding", "Enable Padding", false)
 {
     addPort(inport_);
     addPort(outport_);
 
     addProperty(dimensions_);
     dimensions_.setTracking(false);
+    addProperty(padding_);
 }
 
 Processor* GeometryInsideTest::create() const {
@@ -1199,9 +1201,16 @@ void GeometryInsideTest::process() {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Write volume.
     tgt::svec3 dim(dimensions_.get());
+    tgt::vec3 offset = mesh.getMin();
+
+    // Optionally add padding.
+    if (padding_.get()) {
+        dim += tgt::svec3::two;
+        offset -= spacing;
+    }
+
     VolumeRAM_UInt8* idVolume = new VolumeRAM_UInt8(dim);
 
-    tgt::vec3 offset = mesh.getMin();
     Volume* outputVolume = new Volume(idVolume, tgt::vec3(spacing), offset);
 
     auto voxelToWorldMatrix = outputVolume->getVoxelToWorldMatrix();

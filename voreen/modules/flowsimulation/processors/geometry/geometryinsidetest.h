@@ -45,10 +45,12 @@ public:
 protected:
 
     virtual void setDescriptions() {
-        setDescription("Creates a binary volume for the incoming geometry."
-                       "Value 1 determines inside, value 0 means outside."
+        setDescription("Creates a binary volume for the incoming geometry. "
+                       "Value 1 determines inside, value 0 means outside. "
                        "Ensure that the geometry has been converted to mm!");
         dimensions_.setDescription("Dimension of the longest side of the output volume.");
+        padding_.setDescription("Enable if padding should be added. "
+                                "This may be useful for centerline extraction.");
     }
 
     virtual bool isReady() const;
@@ -60,6 +62,7 @@ private:
     VolumePort outport_;
 
     IntProperty dimensions_;
+    BoolProperty padding_;
 
     static const std::string loggerCat_;
 };
