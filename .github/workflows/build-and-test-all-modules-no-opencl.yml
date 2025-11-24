@@ -1,0 +1,160 @@
+name: Build and Test (all modules, no opencl)
+
+on:
+  push:
+    branches: [ github-actions ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  linux-ubuntu-24_04:
+    name: Build and Test on Ubuntu 24.04
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake cmake-gui ninja-build g++ \
+            libglew-dev libboost-all-dev libdevil-dev libgdcm-dev libtiff5-dev \
+            libswscale-dev libavcodec-dev libavformat-dev freeglut3-dev \
+            libhdf5-dev liblz4-dev clinfo opencl-headers python3-dev \
+            libvtk9-dev libgdcm-dev libgdcm-tools \
+            xvfb
+
+      - name: Install Qt 5.15.2
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'gcc_64'
+          install-deps: 'true'
+          cache: 'true'
+
+      - name: Configure (CMake, Linux)
+        run: |
+          cmake -S voreen -B cmake-build-debug \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+            -C ci/all_modules.cmake \
+            -DCMAKE_PREFIX_PATH="${QT_ROOT_DIR}"
+        env:
+          QT_ROOT_DIR: ${{ env.QT_ROOT_DIR }}
+
+      - name: Build (Linux)
+        run: |
+          cmake --build cmake-build-debug --parallel -- -k 0
+          
+      - name: Checkout regression test data
+        uses: actions/checkout@v4
+        with:
+          repository: voreen-project/testdata
+          path: testdata
+          token: ${{ secrets.VOREEN_TESTDATA_TOKEN }}
+
+      - name: Run regression tests (Linux)
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "true"
+          GALLIUM_DRIVER: "llvmpipe"
+          GALLIVM_PERF: "no_aos_sampling"
+        run: |
+          set -e
+          
+          TESTDATA_BASE="$PWD/testdata/voreen-testdata"
+          REPORT_DIR="$PWD/testdata/report"
+          mkdir -p "$REPORT_DIR"
+          
+          echo "Using test data at: $TESTDATA_BASE"
+          echo "Writing report to:  $REPORT_DIR"
+          
+          # Run tests under Xvfb so render tests have an OpenGL context.
+          xvfb-run --server-args="-screen 0 640x480x24" \
+            -a "$PWD/cmake-build-debug/bin/regressiontest" \
+            --voreentool "$PWD/cmake-build-debug/bin/voreentool" \
+            --useCaching false \
+            --keepReferenceData \
+            --redirectStdOut true \
+            --logLevel info \
+            --timeout 600 \
+            --testcases all \
+            --datadir "$TESTDATA_BASE" \
+            --reportdir "$REPORT_DIR" \
+            --htmlReport "$REPORT_DIR/report.html"
+            
+      - name: Upload regression report
+        if: always()   # run even if regression tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-report-linux
+          path: testdata/report
+          if-no-files-found: ignore   # or 'error' / 'warn'
+          retention-days: 7
+
+  windows-msvc-2022:
+    name: Build on Windows (VS 2022)
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt 5.15.2
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          cache: 'true'
+
+      - name: Download pre-built 3rd-party libraries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $base = "https://www.uni-muenster.de/imperia/md/content/voreen/pre-built"
+
+          $downloads = @{
+            "gdcm-2.8.zip"              = "voreen/modules/gdcm/ext"
+            "hdf5.zip"                  = "voreen/modules/hdf5/ext"
+            "vtk.zip"                   = "voreen/modules/vtk/ext"
+            "python.zip"                = "voreen/modules/python/ext"
+          }
+
+          foreach ($entry in $downloads.GetEnumerator()) {
+            $zipName = $entry.Key
+            $destDir = Join-Path $env:GITHUB_WORKSPACE $entry.Value
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+
+            $zipPath = Join-Path $env:RUNNER_TEMP $zipName
+            Write-Host "Downloading $zipName..."
+            Invoke-WebRequest -Uri "$base/$zipName" -OutFile $zipPath
+
+            Write-Host "Extracting $zipName to $destDir..."
+            Expand-Archive -Path $zipPath -DestinationPath $destDir -Force
+          }
+
+      - name: Configure (CMake, Windows)
+        shell: pwsh
+        run: |
+          cmake -S voreen -B cmake-build-debug `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
+            -C ci/all_modules.cmake `
+            -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
+
+      - name: Build (Windows)
+        shell: pwsh
+        run: |
+          cmake --build cmake-build-debug --config $env:BUILD_TYPE --parallel
