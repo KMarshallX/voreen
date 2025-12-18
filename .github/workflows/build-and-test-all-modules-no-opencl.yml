@@ -2,7 +2,7 @@ name: Build and Test (all modules, no opencl)
 
 on:
   push:
-    branches: [ github-actions ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
