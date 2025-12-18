@@ -318,6 +318,9 @@ void VolumeCombine::combineVolumes(Volume* combinedVolume, const VolumeBase* fir
                     return;
             }
 
+            // Normalize.
+            result = combinedVolume->getRealWorldMapping().realWorldToNormalized(result);
+
             // assign clamped result to combined volume
             //vc->setVoxelNormalized(tgt::clamp(result, 0.f, 1.f), pos, referenceChannel); //FIXME: clamp prevents working with float volumes
             vc->setVoxelNormalized(result, pos, referenceChannel);
