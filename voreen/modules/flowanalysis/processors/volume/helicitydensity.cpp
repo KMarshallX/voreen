@@ -103,7 +103,13 @@ void HelicityDensity::process() {
         float helicityDensity = tgt::dot(v, w);
 
         if(normalize_.get()) {
-            helicityDensity /= tgt::length(v) * tgt::length(w);
+            const float length = tgt::length(v) * tgt::length(w);
+            if (length < 1e-6f) {
+                helicityDensity = 0.0f;
+            }
+            else {
+                helicityDensity /= length;
+            }
         }
 
         if(absolute_.get()) {
