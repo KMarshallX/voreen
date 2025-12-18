@@ -578,12 +578,28 @@ void GpuCapabilities::detectOS() {
     }
     else if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0) {
         if (osvi.wProductType == VER_NT_WORKSTATION) {
-            osVersion_ = OS_WIN_10;
-            oss << "Windows 10";
+            if (osvi.dwBuildNumber >= 22000) {
+                osVersion_ = OS_WIN_11;
+                oss << "Windows 11";
+            }
+            else {
+                osVersion_ = OS_WIN_10;
+                oss << "Windows 10";
+            }
         }
         else {
-            osVersion_ = OS_WIN_SERVER_2016;
-            oss << "Windows Server 2016";
+            if (osvi.dwBuildNumber >= 20348) {
+                osVersion_ = OS_WIN_SERVER_2022;
+                oss << "Windows Server 2022";
+            }
+            else if (osvi.dwBuildNumber >= 17763) {
+                osVersion_ = OS_WIN_SERVER_2019;
+                oss << "Windows Server 2019";
+            }
+            else {
+                osVersion_ = OS_WIN_SERVER_2016;
+                oss << "Windows Server 2016";
+            }
         }
     }
     else {

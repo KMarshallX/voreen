@@ -17,7 +17,7 @@ IF(WIN32)
     LIST(APPEND TIFF_DLL_NAMES "libtiff")
     
     # set debug and release libraries
-    IF(VRN_MSVC2017 OR VRN_MSVC2019 OR VRN_MSVC2022)            
+    IF(VRN_MSVC2017 OR VRN_MSVC2019 OR VRN_MSVC2022 OR VRN_MSVC2026)            
         SET(TIFF_LIB_DIR "${MOD_DIR}/ext/libtiff/lib/msvc2017")
     ELSE()
         MESSAGE(FATAL_ERROR "Unsupported MSVC toolchain")

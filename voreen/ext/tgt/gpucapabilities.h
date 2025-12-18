@@ -178,6 +178,9 @@ public:
         OS_WIN_SERVER_2012_R2,
         OS_WIN_10,
         OS_WIN_SERVER_2016,
+        OS_WIN_SERVER_2019,
+        OS_WIN_SERVER_2022,
+        OS_WIN_11,
         OS_POSIX     ///< For Linux and other POSIX-like OS. Have a look at getOSVersionString for details.
     };
 

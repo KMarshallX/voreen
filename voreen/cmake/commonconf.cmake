@@ -60,6 +60,12 @@ ELSEIF("${CMAKE_GENERATOR}" STREQUAL "Visual Studio 17 2022" AND
     SET(VRN_MSVC2022 TRUE)
     SET(VRN_MSVC TRUE)
     MESSAGE(STATUS "Visual Studio 2022 Build")
+ELSEIF("${CMAKE_GENERATOR}" STREQUAL "Visual Studio 18 2026" AND
+    ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64" OR 
+    ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "" AND "${CMAKE_VS_PLATFORM_NAME_DEFAULT}" STREQUAL "x64")))
+    SET(VRN_MSVC2022 TRUE)
+    SET(VRN_MSVC TRUE)
+    MESSAGE(STATUS "Visual Studio 2026 Build")
 ELSEIF(${CMAKE_GENERATOR} MATCHES "Unix" OR ${CMAKE_GENERATOR} MATCHES "Ninja")
     SET(VRN_UNIX TRUE)
     MESSAGE(STATUS "Unix Build")
@@ -183,15 +189,17 @@ IF(VRN_MSVC)
                 INSTALL(FILES "${VS_DIR}/VC/Redist/MSVC/${VS_VER}/x64/Microsoft.VC141.CRT/vcruntime140.dll" DESTINATION .)
                 INSTALL(FILES "${VS_DIR}/VC/Redist/MSVC/${VS_VER}/x64/Microsoft.VC141.OpenMP/vcomp140.dll" DESTINATION .)
             ENDIF()
-        ELSEIF(VRN_MSVC2019 OR VRN_MSVC2022)
+        ELSEIF(VRN_MSVC2019 OR VRN_MSVC2022 OR MSVC2026)
             # this has to be a separate variable because $ENV{} doesn't like parentheses
             SET(program_files_x86 "ProgramFiles(x86)")
 
             # Set the Visual Studio version that vswhere should look for
             IF(VRN_MSVC2019)
                 SET(vswhere_version "[16,17\)")
-            ELSE()
+            ELSEIF(VRN_MSVC2022)
                 SET(vswhere_version "[17,18\)")
+            ELSEIF(VRN_MSVC2026)
+                SET(vswhere_version "[18,19\)")
             ENDIF()
 
             # Execute vswhere to find the Visual Studio installation redist libraries path
@@ -215,8 +223,10 @@ IF(VRN_MSVC)
                 # Set the appropriate toolset version
                 IF(VRN_MSVC2019)
                     SET(toolset_version "VC142")
-                ELSE()
+                ELSEIF(VRN_MSVC2022)
                     SET(toolset_version "VC143")
+                ELSEIF(VRN_MSVC2026)
+                    SET(toolset_version "VC144")
                 ENDIF()
 
                 # Install redist libraries
@@ -226,7 +236,7 @@ IF(VRN_MSVC)
                 INSTALL(FILES "${vswhere_output}/Microsoft.${toolset_version}.OpenMP/vcomp140.dll" DESTINATION .)
             ENDIF()
         ELSE()
-            MESSAGE(WARNING "Deploying redist libraries only supported for Visual Studio 2017, 2019, 2022.")
+            MESSAGE(WARNING "Deploying redist libraries only supported for Visual Studio 2017, 2019, 2022, 2026.")
         ENDIF()
     ELSE(VRN_DEPLOYMENT)
         # hardcode Voreen base path, if binary output dir has been modified and we are not in deployment mode
