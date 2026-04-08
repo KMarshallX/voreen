@@ -616,9 +616,8 @@ void setBoundaryValues( SuperLattice<T, DESCRIPTOR>& lattice,
                 }
                 case FP_VOLUME:
                 {
-                    auto multiplier = std::min<float>(targetPhysVelocity / indicator.velocityCurve_.getMaxVelocity(), 1);
-                    multiplier = converter.getLatticeVelocity(multiplier);
                     if(timeSeries) {
+                        const auto multiplier = converter.getLatticeVelocity(parameters.inletVelocityMultiplier_);
                         auto volumeSampler = timeSeries->createSampler(time, multiplier);
                         applyFlowProfile(volumeSampler);
                     }
